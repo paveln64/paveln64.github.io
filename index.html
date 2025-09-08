@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Расписание МИФИ</title>
+    <link rel="icon" href="favicon.png" type="image/x-icon">
+    <link rel="apple-touch-icon" href="icon-512.png" type="image/x-icon">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f5f5f5;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        img {
+            margin-top: 20px;
+            max-width: 50%;
+            height: auto;
+        }
+
+        h1 {
+            margin: 10px 0 5px;
+            font-size: 1.8rem;
+            font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        }
+
+        h3 {
+            margin: 20px 0 10px;
+            font-size: 0.9rem;
+            font-weight: lighter;
+            color: #555;
+        }
+
+        .menu-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 5%;
+            box-sizing: border-box;
+        }
+
+        div.button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 95%;
+            height: 80px;
+            background-color: #295BB0;
+            margin: 4px 0;
+            font-weight: bold;
+            font-size: large;
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        div.button:hover {
+            background-color: #1e4a8a;
+        }
+
+        div.predun_button, div.sportzal_button {
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+        }
+
+        div.vo_button_zaoch, div.info_button {
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+        }
+
+        #backButton {
+            background-color: #6c757d;
+        }
+
+        #backButton:hover {
+            background-color: #5a6268;
+        }
+
+        /* Скрытое подменю */
+        #predunmenu {
+            display: none;
+            width: 100%;
+        }
+
+        /* Главное меню — видимо по умолчанию */
+        #mainmenu {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+    </style>
+    <script>
+        function showpredunmenu() {
+            document.getElementById('mainmenu').style.display = 'none';
+            document.getElementById('predunmenu').style.display = 'flex';
+        }
+        function showspomenu() {
+            document.getElementById('mainmenu').style.display = 'none';
+            document.getElementById('spomenu').style.display = 'flex';
+        }
+        function showvoochmenu() {
+            document.getElementById('mainmenu').style.display = 'none';
+            document.getElementById('voochmenu').style.display = 'flex';
+        }
+        function showvozaochmenu() {
+            document.getElementById('mainmenu').style.display = 'none';
+            document.getElementById('vozaochmenu').style.display = 'flex';
+        }
+        function showMainmenu() {
+            document.getElementById('predunmenu').style.display = 'none';
+            document.getElementById('spomenu').style.display='none';
+            document.getElementById('voochmenu').style.display='none';
+            document.getElementById('vozaochmenu').style.display='none';
+            document.getElementById('mainmenu').style.display = 'flex';
+        }
+
+        async function openPDF(pdfUrl, cacheName = 'pdf-cache') {
+            try {
+                // Пытаемся загрузить свежую версию
+                const response = await fetch(pdfUrl, { cache: 'no-cache' });
+
+                if (response.ok) {
+                    // Сохраняем в кэш
+                    const cache = await caches.open(cacheName);
+                    await cache.put(pdfUrl, response.clone());
+
+                    // Открываем в новой вкладке
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    return;
+                }
+            } catch (err) {
+                console.warn("Нет интернета или ошибка загрузки. Пробуем кэш...");
+            }
+
+            // Если онлайн-загрузка не удалась — пробуем из кэша
+            const cache = await caches.open(cacheName);
+            const cachedResponse = await cache.match(pdfUrl);
+
+            if (cachedResponse) {
+                const blob = await cachedResponse.blob();
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+            } else {
+                alert("Нет интернета и PDF ещё не кэширован. Попробуйте позже онлайн.");
+            }
+        }
+
+        // ✅ Регистрация Service Worker для кэширования (включая PDF)
+        if ('serviceWorker' in navigator) {
+            const swContent = `
+                const CACHE_NAME = 'pdf-cache-v1';
+                const PDF_URLS = [
+                    'https://mephi3.ru/files/education/edu_school/rasp.pdf',
+                    'https://mephi3.ru/files/education/edu_higher/rasp_o.pdf',
+                    'https://mephi3.ru/files/education/edu_higher/rasp_o_new.pdf',
+                    'https://mephi3.ru/files/education/edu_higher/rasp_oz.pdf',
+                    'https://mephi3.ru/files/education/edu_higher/rasp_oz_new.pdf',
+                    'https://mephi3.ru/files/education/edu_higher/rasp_zach.pdf',
+                    'https://mephi3.ru/files/education/edu_higher/rasp_ekz.pdf',
+                    'https://mephi3.ru/files/education/edu_higher/rasp_presedach.pdf',
+                    'https://mephi3.ru/files/education/edu_secondary/rasp.pdf',
+                    'https://mephi3.ru/files/education/edu_secondary/rasp_next.pdf',
+                    'https://mephi3.ru/files/education/edu_secondary/rasp_ekz.pdf',
+                    'https://mephi3.ru/files/education/edu_secondary/rasp_zach.pdf',
+                    'https://mephi3.ru/files/education/edu_secondary/rasp_peresdach.pdf',
+                    'https://mephi3.ru/files/education/mifitnes.pdf'
+                    // 👈 СЮДА ДОБАВЬ СВОИ РЕАЛЬНЫЕ ССЫЛКИ НА PDF
+                ];
+
+                self.addEventListener('install', event => {
+                    event.waitUntil(
+                        caches.open(CACHE_NAME).then(cache => {
+                            return cache.addAll(PDF_URLS).catch(err => {
+                                console.warn('Не удалось закэшировать PDF при установке:', err);
+                            });
+                        })
+                    );
+                });
+
+                self.addEventListener('fetch', event => {
+                    const url = new URL(event.request.url);
+                    if (PDF_URLS.some(pdfUrl => url.href.startsWith(pdfUrl))) {
+                        event.respondWith(
+                            caches.match(event.request).then(cached => {
+                                return cached || fetch(event.request);
+                            })
+                        );
+                    }
+                });
+            `;
+
+            const swBlob = new Blob([swContent], { type: 'application/javascript' });
+            const swURL = URL.createObjectURL(swBlob);
+
+            navigator.serviceWorker.register(swURL).then(reg => {
+                console.log('✅ Service Worker зарегистрирован (для PDF)');
+            }).catch(err => {
+                console.warn('⚠️ Ошибка регистрации SW:', err);
+            });
+        }
+    </script>
+</head>
+<body>
+    <img src="logo.png" alt="МИФИ-3">
+    <br>
+    <h1>Расписание</h1>
+
+    <!-- Главное меню -->
+    <div id="mainmenu" class="menu-container">
+        <h3>Отделения</h3>
+        <div class="button predun_button" onclick="showpredunmenu()">Предуниверситарий</div>
+        <div class="button spo_button" onclick="showspomenu()">Среднее профессиональное образование</div>
+        <div class="button vo_button_och" onclick="showvoochmenu()">Высшее образование</div>
+        <div class="button vo_button_zaoch" onclick="showvozaochmenu()">Высшее образование (заочное)</div>
+
+        <h3>Общее</h3>
+        <div class="button sportzal_button" onclick="openPDF('https://mephi3.ru/files/education/mifitnes.pdf?v=1757326628996')">График работы спортзала</div>
+        <div class="button site_button" onclick="window.location.href='https://mephi3.ru'">Сайт университета</div>
+        <div class="button info_button" onclick="alert('Версия 1.0')">Информация о приложении</div>
+    </div>
+
+    <!-- Подменю для Предуниверситария -->
+    <div id="predunmenu" class="menu-container" style="display:none;">
+        <h3>Расписание предуниверситария</h3>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_school/rasp.pdf')">Расписание уроков</div>
+        <div class="button" onclick="window.location.href='https://net.mephi3.ru'">Система Сетевой город</div>
+        <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
+    </div>
+    <div id="spomenu" class="menu-container" style="display:none;">
+        <h3>Расписание СПО</h3>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp.pdf')">Текущая неделя</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_next.pdf')">Следующая неделя</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_zach.pdf')">Зачёты</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_ekz.pdf')">Экзамены</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_peresdach.pdf')">Пересдачи</div>
+        <div class="button" onclick="window.location.href='https://stud.mephi3.ru'">Плановое расписание</div>
+        <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
+    </div>
+    <div id="voochmenu" class="menu-container" style="display:none;">
+        <h3>Расписание ВО</h3>
+<div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_o.pdf')">Текущая неделя</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_o_new.pdf')">Следующая неделя</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_zach.pdf')">Зачёты</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_ekz.pdf')">Экзамены</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_peresdach.pdf')">Пересдачи</div>
+        <div class="button" onclick="window.location.href='https://stud.mephi3.ru'">Плановое расписание</div>
+        <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
+    </div>
+    <div id="vozaochmenu" class="menu-container" style="display:none;">
+        <h3>Расписание ВО (очно-заочное отделение)</h3>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_oz.pdf')">Текущая неделя</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_oz_new.pdf')">Следующая неделя</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_zach.pdf')">Зачёты</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_ekz.pdf')">Экзамены</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_peresdach.pdf')">Пересдачи</div>
+        <div class="button" onclick="window.location.href='https://stud.mephi3.ru'">Плановое расписание</div>
+        <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
+    </div>
+
+
+</body>
+</html>

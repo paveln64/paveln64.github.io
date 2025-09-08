@@ -167,62 +167,7 @@
         }
 
         // Улучшенная функция открытия PDF с обработкой CORS
-        async function openPDF(pdfUrl) {
-            try {
-                // Убираем лишние пробелы
-                pdfUrl = pdfUrl.trim();
-                
-                // Проверяем поддержку Service Worker
-                if ('serviceWorker' in navigator && 'caches' in window) {
-                    // Пробуем получить из кэша
-                    const cache = await caches.open('pdf-cache-v1');
-                    const cachedResponse = await cache.match(pdfUrl);
-                    
-                    if (cachedResponse) {
-                        console.log('Загрузка из кэша:', pdfUrl);
-                        const blob = await cachedResponse.blob();
-                        const url = URL.createObjectURL(blob);
-                        window.open(url, '_blank');
-                        return;
-                    }
-                }
-                
-                // Если нет в кэше или Service Worker не поддерживается
-                console.log('Загрузка с сервера:', pdfUrl);
-                
-                // Используем fetch API для загрузки
-                const response = await fetch(pdfUrl, {
-                    method: 'GET',
-                    mode: 'cors',
-                    cache: 'no-cache'
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                // Кэшируем ответ если Service Worker доступен
-                if ('serviceWorker' in navigator && 'caches' in window) {
-                    const cache = await caches.open('pdf-cache-v1');
-                    await cache.put(pdfUrl, response.clone());
-                }
-                
-                // Открываем PDF
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                window.open(url, '_blank');
-                
-            } catch (error) {
-                console.error('Ошибка при открытии PDF:', error);
-                
-                // Если ошибка CORS, предлагаем альтернативный способ
-                if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('CORS'))) {
-                    alert('Не удалось открыть PDF из-за ограничений безопасности. Попробуйте открыть файл вручную по ссылке:\n' + pdfUrl);
-                } else {
-                    alert('Не удалось открыть PDF: ' + error.message);
-                }
-            }
-        }
+        
 
         // Регистрация Service Worker
         if ('serviceWorker' in navigator) {
@@ -340,7 +285,7 @@
         <div class="button vo_button_zaoch" onclick="showvozaochmenu()">Высшее образование (заочное)</div>
 
         <h3>Общее</h3>
-        <div class="button sportzal_button" onclick="openPDF('https://mephi3.ru/files/education/mifitnes.pdf')">График работы спортзала</div>
+        <div class="button sportzal_button" onclick="window.open('https://mephi3.ru/files/education/mifitnes.pdf')">График работы спортзала</div>
         <div class="button site_button" onclick="window.open('https://mephi3.ru', '_blank')">Сайт университета</div>
         <div class="button info_button" onclick="alert('Версия 1.0')">Информация о приложении</div>
     </div>
@@ -348,40 +293,40 @@
     <!-- Подменю для Предуниверситария -->
     <div id="predunmenu" class="menu-container">
         <h3>Расписание предуниверситария</h3>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_school/rasp.pdf')">Расписание уроков</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_school/rasp.pdf')">Расписание уроков</div>
         <div class="button" onclick="window.open('https://net.mephi3.ru', '_blank')">Система Сетевой город</div>
         <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
     </div>
     
     <div id="spomenu" class="menu-container">
         <h3>Расписание СПО</h3>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp.pdf')">Текущая неделя</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_next.pdf')">Следующая неделя</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_zach.pdf')">Зачёты</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_ekz.pdf')">Экзамены</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_peresdach.pdf')">Пересдачи</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_secondary/rasp.pdf')">Текущая неделя</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_secondary/rasp_next.pdf')">Следующая неделя</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_secondary/rasp_zach.pdf')">Зачёты</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_secondary/rasp_ekz.pdf')">Экзамены</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_secondary/rasp_peresdach.pdf')">Пересдачи</div>
         <div class="button" onclick="window.open('https://stud.mephi3.ru', '_blank')">Плановое расписание</div>
         <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
     </div>
     
     <div id="voochmenu" class="menu-container">
         <h3>Расписание ВО</h3>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_o.pdf')">Текущая неделя</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_o_new.pdf')">Следующая неделя</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_zach.pdf')">Зачёты</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_ekz.pdf')">Экзамены</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_presedach.pdf')">Пересдачи</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_higher/rasp_o.pdf')">Текущая неделя</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_higher/rasp_o_new.pdf')">Следующая неделя</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_higher/rasp_zach.pdf')">Зачёты</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_higher/rasp_ekz.pdf')">Экзамены</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_higher/rasp_presedach.pdf')">Пересдачи</div>
         <div class="button" onclick="window.open('https://stud.mephi3.ru', '_blank')">Плановое расписание</div>
         <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
     </div>
     
     <div id="vozaochmenu" class="menu-container">
         <h3>Расписание ВО (очно-заочное отделение)</h3>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_oz.pdf')">Текущая неделя</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_oz_new.pdf')">Следующая неделя</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_zach.pdf')">Зачёты</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_ekz.pdf')">Экзамены</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_presedach.pdf')">Пересдачи</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_higher/rasp_oz.pdf')">Текущая неделя</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_higher/rasp_oz_new.pdf')">Следующая неделя</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_higher/rasp_zach.pdf')">Зачёты</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_higher/rasp_ekz.pdf')">Экзамены</div>
+        <div class="button" onclick="window.open('https://mephi3.ru/files/education/edu_higher/rasp_presedach.pdf')">Пересдачи</div>
         <div class="button" onclick="window.open('https://stud.mephi3.ru', '_blank')">Плановое расписание</div>
         <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
     </div>

@@ -60,6 +60,9 @@
             border-radius: 12px;
             cursor: pointer;
             transition: background-color 0.2s;
+            text-align: center;
+            padding: 0 10px;
+            box-sizing: border-box;
         }
 
         div.button:hover {
@@ -85,7 +88,7 @@
         }
 
         /* Скрытое подменю */
-        #predunmenu {
+        #predunmenu, #spomenu, #voochmenu, #vozaochmenu {
             display: none;
             width: 100%;
         }
@@ -99,57 +102,62 @@
         }
     </style>
     <script>
-         // Определяем манифест
-    const manifest = {
-        "name": "МИФИ-3",
-        "short_name": "МИФИ-3",
-        "description": "Приложениие для просмотра расписания занятий ТИ НИЯУ МИФИ, г. Лесной",
-        "start_url": "/",
-        "display": "standalone", // ← ВАЖНО: открывается как приложение
-        "background_color": "#ffffff",
-        "theme_color": "#295BB0",
-        "icons": [
-            {
-                "src": "icon-192.png",
-                "sizes": "192x192",
-                "type": "image/png"
-            },
-            {
-                "src": "icon-512.png",
-                "sizes": "512x512",
-                "type": "image/png"
-            }
-        ],
-        "orientation": "portrait",
-        "lang": "ru"
-    };
+        // Определяем манифест
+        const manifest = {
+            "name": "МИФИ-3",
+            "short_name": "МИФИ-3",
+            "description": "Приложение для просмотра расписания занятий ТИ НИЯУ МИФИ, г. Лесной",
+            "start_url": "/",
+            "display": "standalone",
+            "background_color": "#ffffff",
+            "theme_color": "#295BB0",
+            "icons": [
+                {
+                    "src": "icon-192.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                },
+                {
+                    "src": "icon-512.png",
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }
+            ],
+            "orientation": "portrait",
+            "lang": "ru"
+        };
 
-    // Создаём Blob из манифеста
-    const stringManifest = JSON.stringify(manifest);
-    const blob = new Blob([stringManifest], {type: 'application/json'});
-    const manifestURL = URL.createObjectURL(blob);
+        // Создаём Blob из манифеста
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
 
-    // Добавляем ссылку на манифест в head
-    const link = document.createElement('link');
-    link.rel = 'manifest';
-    link.href = manifestURL;
-    document.head.appendChild(link);
+        // Добавляем ссылку на манифест в head
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestURL;
+        document.head.appendChild(link);
+
         function showpredunmenu() {
             document.getElementById('mainmenu').style.display = 'none';
             document.getElementById('predunmenu').style.display = 'flex';
         }
+        
         function showspomenu() {
             document.getElementById('mainmenu').style.display = 'none';
             document.getElementById('spomenu').style.display = 'flex';
         }
+        
         function showvoochmenu() {
             document.getElementById('mainmenu').style.display = 'none';
             document.getElementById('voochmenu').style.display = 'flex';
         }
+        
         function showvozaochmenu() {
             document.getElementById('mainmenu').style.display = 'none';
             document.getElementById('vozaochmenu').style.display = 'flex';
         }
+        
         function showMainmenu() {
             document.getElementById('predunmenu').style.display = 'none';
             document.getElementById('spomenu').style.display='none';
@@ -158,61 +166,67 @@
             document.getElementById('mainmenu').style.display = 'flex';
         }
 
-        async function openPDF(pdfUrl, cacheName = 'pdf-cache') {
-    let response;
-
-    try {
-        // Пытаемся загрузить свежую версию с сервера
-        response = await fetch(pdfUrl, { cache: 'no-cache' });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        // Успешно загружено — сохраняем в кэш
-        const cache = await caches.open(cacheName);
-        await cache.put(pdfUrl, response.clone());
-
-        // Открываем PDF
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
-        return;
-
-    } catch (err) {
-        console.warn("Ошибка при загрузке PDF онлайн:", err.message);
-
-        // Проверяем: если ошибка связана с сетью — пробуем кэш
-        if (err.message.includes("Failed to fetch") || err.name === "TypeError") {
-            console.log("Похоже, нет интернета. Пробуем кэш...");
-
+        // Улучшенная функция открытия PDF с обработкой CORS
+        async function openPDF(pdfUrl) {
             try {
-                const cache = await caches.open(cacheName);
-                const cachedResponse = await cache.match(pdfUrl);
-
-                if (cachedResponse) {
-                    const blob = await cachedResponse.blob();
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, '_blank');
-                    return;
-                } else {
-                    alert("Нет интернета и PDF ещё не кэширован. Зайдите онлайн для первого кэширования.");
-                    return;
+                // Убираем лишние пробелы
+                pdfUrl = pdfUrl.trim();
+                
+                // Проверяем поддержку Service Worker
+                if ('serviceWorker' in navigator && 'caches' in window) {
+                    // Пробуем получить из кэша
+                    const cache = await caches.open('pdf-cache-v1');
+                    const cachedResponse = await cache.match(pdfUrl);
+                    
+                    if (cachedResponse) {
+                        console.log('Загрузка из кэша:', pdfUrl);
+                        const blob = await cachedResponse.blob();
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                        return;
+                    }
                 }
-            } catch (cacheErr) {
-                alert("Не удалось открыть PDF даже из кэша.");
-                console.error(cacheErr);
-                return;
+                
+                // Если нет в кэше или Service Worker не поддерживается
+                console.log('Загрузка с сервера:', pdfUrl);
+                
+                // Используем fetch API для загрузки
+                const response = await fetch(pdfUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                // Кэшируем ответ если Service Worker доступен
+                if ('serviceWorker' in navigator && 'caches' in window) {
+                    const cache = await caches.open('pdf-cache-v1');
+                    await cache.put(pdfUrl, response.clone());
+                }
+                
+                // Открываем PDF
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                
+            } catch (error) {
+                console.error('Ошибка при открытии PDF:', error);
+                
+                // Если ошибка CORS, предлагаем альтернативный способ
+                if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('CORS'))) {
+                    alert('Не удалось открыть PDF из-за ограничений безопасности. Попробуйте открыть файл вручную по ссылке:\n' + pdfUrl);
+                } else {
+                    alert('Не удалось открыть PDF: ' + error.message);
+                }
             }
         }
 
-        // Если ошибка НЕ сетевая — показываем сообщение
-        alert("Не удалось загрузить PDF: " + err.message);
-    }
-}
-
-        // ✅ Регистрация Service Worker для кэширования (включая PDF)
+        // Регистрация Service Worker
         if ('serviceWorker' in navigator) {
+            // Создаем Service Worker программно
             const swContent = `
                 const CACHE_NAME = 'pdf-cache-v1';
                 const PDF_URLS = [
@@ -230,47 +244,86 @@
                     'https://mephi3.ru/files/education/edu_secondary/rasp_zach.pdf',
                     'https://mephi3.ru/files/education/edu_secondary/rasp_peresdach.pdf',
                     'https://mephi3.ru/files/education/mifitnes.pdf'
-                    // 👈 СЮДА ДОБАВЬ СВОИ РЕАЛЬНЫЕ ССЫЛКИ НА PDF
                 ];
 
                 self.addEventListener('install', event => {
-            event.waitUntil(
-                caches.open(CACHE_NAME).then(cache => {
-                    // Кэшируем, но игнорируем ошибки отдельных файлов
-                    return Promise.all(
-                        PDF_URLS.map(url => {
-                            return fetch(url)
-                                .then(res => res.ok ? cache.put(url, res) : Promise.resolve())
-                                .catch(err => {
-                                    console.warn('Не удалось закэшировать:', url, err);
-                                });
+                    event.waitUntil(
+                        caches.open(CACHE_NAME)
+                            .then(cache => {
+                                console.log('Кэширование PDF файлов');
+                                return cache.addAll(PDF_URLS.map(url => new Request(url, {mode: 'cors'})))
+                                    .catch(error => {
+                                        console.warn('Некоторые файлы не удалось закэшировать:', error);
+                                    });
+                            })
+                    );
+                });
+
+                self.addEventListener('activate', event => {
+                    event.waitUntil(
+                        caches.keys().then(cacheNames => {
+                            return Promise.all(
+                                cacheNames.map(cacheName => {
+                                    if (cacheName !== CACHE_NAME) {
+                                        return caches.delete(cacheName);
+                                    }
+                                })
+                            );
                         })
                     );
+                });
+
+                self.addEventListener('fetch', event => {
+                    const url = new URL(event.request.url);
+                    
+                    // Проверяем, является ли запрос PDF файлом
+                    if (PDF_URLS.some(pdfUrl => url.href.startsWith(pdfUrl))) {
+                        event.respondWith(
+                            caches.match(event.request)
+                                .then(response => {
+                                    // Возвращаем из кэша, если есть
+                                    if (response) {
+                                        return response;
+                                    }
+                                    // Иначе загружаем с сервера
+                                    return fetch(event.request)
+                                        .then(response => {
+                                            // Кэшируем новый ответ
+                                            if (response.ok) {
+                                                const responseToCache = response.clone();
+                                                caches.open(CACHE_NAME)
+                                                    .then(cache => {
+                                                        cache.put(event.request, responseToCache);
+                                                    });
+                                            }
+                                            return response;
+                                        })
+                                        .catch(() => {
+                                            // Если нет сети, возвращаем ошибку
+                                            return new Response('Нет подключения к интернету', {
+                                                status: 408,
+                                                headers: {'Content-Type': 'text/plain'}
+                                            });
+                                        });
+                                })
+                        );
+                    }
+                });
+            `;
+
+            const swBlob = new Blob([swContent], { type: 'application/javascript' });
+            const swURL = URL.createObjectURL(swBlob);
+
+            navigator.serviceWorker.register(swURL)
+                .then(registration => {
+                    console.log('✅ Service Worker зарегистрирован');
+                    // Обновляем кэш при активации
+                    registration.update();
                 })
-            );
-        });
-
-        self.addEventListener('fetch', event => {
-            const url = new URL(event.request.url);
-            if (PDF_URLS.some(pdfUrl => url.href.startsWith(pdfUrl))) {
-                event.respondWith(
-                    caches.match(event.request).then(cached => {
-                        return cached || fetch(event.request);
-                    })
-                );
-            }
-        });
-    `;
-
-    const swBlob = new Blob([swContent], { type: 'application/javascript' });
-    const swURL = URL.createObjectURL(swBlob);
-
-    navigator.serviceWorker.register(swURL).then(reg => {
-        console.log('✅ Service Worker зарегистрирован (для PDF)');
-    }).catch(err => {
-        console.warn('⚠️ Ошибка регистрации SW:', err);
-    });
-}
+                .catch(error => {
+                    console.warn('⚠️ Ошибка регистрации Service Worker:', error);
+                });
+        }
     </script>
 </head>
 <body>
@@ -287,49 +340,65 @@
         <div class="button vo_button_zaoch" onclick="showvozaochmenu()">Высшее образование (заочное)</div>
 
         <h3>Общее</h3>
-        <div class="button sportzal_button" onclick="openPDF('https://mephi3.ru/files/education/mifitnes.pdf?v=1757326628996')">График работы спортзала</div>
-        <div class="button site_button" onclick="window.location.href='https://mephi3.ru'">Сайт университета</div>
+        <div class="button sportzal_button" onclick="openPDF('https://mephi3.ru/files/education/mifitnes.pdf')">График работы спортзала</div>
+        <div class="button site_button" onclick="window.open('https://mephi3.ru', '_blank')">Сайт университета</div>
         <div class="button info_button" onclick="alert('Версия 1.0')">Информация о приложении</div>
     </div>
 
     <!-- Подменю для Предуниверситария -->
-    <div id="predunmenu" class="menu-container" style="display:none;">
+    <div id="predunmenu" class="menu-container">
         <h3>Расписание предуниверситария</h3>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_school/rasp.pdf')">Расписание уроков</div>
-        <div class="button" onclick="window.location.href='https://net.mephi3.ru'">Система Сетевой город</div>
+        <div class="button" onclick="window.open('https://net.mephi3.ru', '_blank')">Система Сетевой город</div>
         <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
     </div>
-    <div id="spomenu" class="menu-container" style="display:none;">
+    
+    <div id="spomenu" class="menu-container">
         <h3>Расписание СПО</h3>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp.pdf')">Текущая неделя</div>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_next.pdf')">Следующая неделя</div>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_zach.pdf')">Зачёты</div>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_ekz.pdf')">Экзамены</div>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_secondary/rasp_peresdach.pdf')">Пересдачи</div>
-        <div class="button" onclick="window.location.href='https://stud.mephi3.ru'">Плановое расписание</div>
+        <div class="button" onclick="window.open('https://stud.mephi3.ru', '_blank')">Плановое расписание</div>
         <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
     </div>
-    <div id="voochmenu" class="menu-container" style="display:none;">
+    
+    <div id="voochmenu" class="menu-container">
         <h3>Расписание ВО</h3>
-<div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_o.pdf')">Текущая неделя</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_o.pdf')">Текущая неделя</div>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_o_new.pdf')">Следующая неделя</div>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_zach.pdf')">Зачёты</div>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_ekz.pdf')">Экзамены</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_peresdach.pdf')">Пересдачи</div>
-        <div class="button" onclick="window.location.href='https://stud.mephi3.ru'">Плановое расписание</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_presedach.pdf')">Пересдачи</div>
+        <div class="button" onclick="window.open('https://stud.mephi3.ru', '_blank')">Плановое расписание</div>
         <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
     </div>
-    <div id="vozaochmenu" class="menu-container" style="display:none;">
+    
+    <div id="vozaochmenu" class="menu-container">
         <h3>Расписание ВО (очно-заочное отделение)</h3>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_oz.pdf')">Текущая неделя</div>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_oz_new.pdf')">Следующая неделя</div>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_zach.pdf')">Зачёты</div>
         <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_ekz.pdf')">Экзамены</div>
-        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_peresdach.pdf')">Пересдачи</div>
-        <div class="button" onclick="window.location.href='https://stud.mephi3.ru'">Плановое расписание</div>
+        <div class="button" onclick="openPDF('https://mephi3.ru/files/education/edu_higher/rasp_presedach.pdf')">Пересдачи</div>
+        <div class="button" onclick="window.open('https://stud.mephi3.ru', '_blank')">Плановое расписание</div>
         <div class="button" id="backButton" onclick="showMainmenu()">Назад</div>
     </div>
 
-
+    <script>
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Показываем главное меню по умолчанию
+            showMainmenu();
+            
+            // Проверяем поддержку Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    console.log('Service Worker готов к работе');
+                });
+            }
+        });
+    </script>
 </body>
 </html>
